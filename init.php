@@ -111,17 +111,6 @@ class HTTPS_Proxy extends Plugin {
 		/* we don't need to handle URLs where local cache already exists, tt-rss rewrites those automatically */
 		if (!$this->cache->exists(sha1($url))) {
 
-			$scheme = parse_url($url, PHP_URL_SCHEME);
-
-			if ($all_remote) {
-				$host = parse_url($url, PHP_URL_HOST);
-				$self_host = parse_url(get_self_url_prefix(), PHP_URL_HOST);
-
-				$is_remote = $host != $self_host;
-			} else {
-				$is_remote = false;
-			}
-
 			$whitelist = $this->host->get($this, "whitelist");
 			if (strpos($url, "data:") !== 0) {
 				$parts = parse_url($url);
