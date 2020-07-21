@@ -1,5 +1,5 @@
 <?php
-class Af_Proxy_Http extends Plugin {
+class HTTPS_Proxy extends Plugin {
 
 	/* @var PluginHost $host */
 	private $host;
@@ -9,19 +9,18 @@ class Af_Proxy_Http extends Plugin {
 
 	function about() {
 		return array(1.0,
-			"Loads media served over plain HTTP via built-in secure proxy",
-			"fox");
+			"Proxies all requests via built-in secure proxy",
+			"fox, timendum");
 	}
 
-	private $ssl_known_whitelist = "imgur.com gfycat.com i.reddituploads.com pbs.twimg.com i.redd.it i.sli.mg media.tumblr.com";
-
 	function is_public_method($method) {
-		return $method === "imgproxy";
+		return $method === "urlproxy";
 	}
 
 	function init($host) {
 		$this->host = $host;
-		$this->cache = new DiskCache("images");
+		$this->cache = new DiskCache("urlproxy");
+		$this->cache->makeDir();
 
 		$host->add_hook($host::HOOK_RENDER_ARTICLE, $this, 150);
 		$host->add_hook($host::HOOK_RENDER_ARTICLE_CDM, $this, 150);
@@ -32,9 +31,7 @@ class Af_Proxy_Http extends Plugin {
 
 	function hook_enclosure_entry($enc) {
 		if (preg_match("/image/", $enc["content_type"])) {
-			$proxy_all = $this->host->get($this, "proxy_all");
-
-			$enc["content_url"] = $this->rewrite_url_if_needed($enc["content_url"], $proxy_all);
+			$enc["content_url"] = $this->rewrite_url_if_needed($enc["content_url"]);
 		}
 
 		return $enc;
@@ -44,7 +41,7 @@ class Af_Proxy_Http extends Plugin {
 		return $this->hook_render_article_cdm($article);
 	}
 
-	public function imgproxy() {
+	public function urlproxy() {
 
 		$url = rewrite_relative_url(get_self_url_prefix(), $_REQUEST["url"]);
 
@@ -110,7 +107,7 @@ class Af_Proxy_Http extends Plugin {
 		}
 	}
 
-	private function rewrite_url_if_needed($url, $all_remote = false) {
+	private function rewrite_url_if_needed($url) {
 		/* we don't need to handle URLs where local cache already exists, tt-rss rewrites those automatically */
 		if (!$this->cache->exists(sha1($url))) {
 
@@ -125,24 +122,17 @@ class Af_Proxy_Http extends Plugin {
 				$is_remote = false;
 			}
 
-			if (($scheme != 'https' && $scheme != "") || $is_remote) {
-				if (strpos($url, "data:") !== 0) {
-					$parts = parse_url($url);
+			$whitelist = $this->host->get($this, "whitelist");
+			if (strpos($url, "data:") !== 0) {
+				$parts = parse_url($url);
 
-					foreach (explode(" " , $this->ssl_known_whitelist) as $host) {
-						if (substr(strtolower($parts['host']), -strlen($host)) === strtolower($host)) {
-							$parts['scheme'] = 'https';
-							$url = build_url($parts);
-							if ($all_remote && $is_remote) {
-								break;
-							} else {
-								return $url;
-							}
-						}
+				foreach (explode(" " , $whitelist) as $host) {
+					if (substr(strtolower($parts['host']), -strlen($host)) === strtolower($host)) {
+						return $url;
 					}
-
-					return $this->host->get_public_method_url($this, "imgproxy", ["url" => $url]);
 				}
+
+				return $this->host->get_public_method_url($this, "urlproxy", ["url" => $url]);
 			}
 		}
 
@@ -209,7 +199,7 @@ class Af_Proxy_Http extends Plugin {
 		if ($args != "prefFeeds") return;
 
 		print "<div dojoType=\"dijit.layout.AccordionPane\" 
-			title=\"<i class='material-icons'>extension</i> ".__('Image proxy settings (af_proxy_http)')."\">";
+			title=\"<i class='material-icons'>extension</i> ".__('HTTPS Proxy settings (https_proxy)')."\">";
 
 		print "<form dojoType=\"dijit.form.Form\">";
 
@@ -229,15 +219,17 @@ class Af_Proxy_Http extends Plugin {
 
 		print_hidden("op", "pluginhandler");
 		print_hidden("method", "save");
-		print_hidden("plugin", "af_proxy_http");
-
-		$proxy_all = $this->host->get($this, "proxy_all");
-		print_checkbox("proxy_all", $proxy_all);
-		print "&nbsp;<label for=\"proxy_all\">" . __("Enable proxy for all remote images.") . "</label><br/>";
+		print_hidden("plugin", "https_proxy");
 
 		$disable_cache = $this->host->get($this, "disable_cache");
+		print "<fieldset class=\"narrow\">";
 		print_checkbox("disable_cache", $disable_cache);
 		print "&nbsp;<label for=\"disable_cache\">" . __("Don't cache files locally.") . "</label>";
+		print "</fieldset>";
+		print "<fieldset class=\"narrow\">";
+		print "<label for=\"whitelist\">" . __("Host not proxied (space separated):") . "</label>";
+		print "<textarea dojoType=\"dijit.form.SimpleTextarea\" name=\"whitelist\" autocomplete=\"off\" id=\"whitelist\" value=\"\"></textarea>";
+		print "</fieldset>";
 
 		print "<p>"; print_button("submit", __("Save"));
 
@@ -247,11 +239,11 @@ class Af_Proxy_Http extends Plugin {
 	}
 
 	function save() {
-		$proxy_all = checkbox_to_sql_bool($_POST["proxy_all"]);
 		$disable_cache = checkbox_to_sql_bool($_POST["disable_cache"]);
+		$whitelist = trim(strip_tags($_POST["whitelist"]));
 
-		$this->host->set($this, "proxy_all", $proxy_all, false);
 		$this->host->set($this, "disable_cache", $disable_cache);
+		$this->host->set($this, "whitelist", $whitelist);
 
 		echo __("Configuration saved");
 	}
