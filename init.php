@@ -145,7 +145,6 @@ class HTTPS_Proxy extends Plugin {
 	function hook_render_article_cdm($article, $api_mode = false) {
 
 		$need_saving = false;
-		$proxy_all = $this->host->get($this, "proxy_all");
 
 		$doc = new DOMDocument();
 		if (@$doc->loadHTML('<?xml encoding="UTF-8">' . $article["content"])) {
@@ -153,7 +152,7 @@ class HTTPS_Proxy extends Plugin {
 			$imgs = $xpath->query("//img[@src]");
 
 			foreach ($imgs as $img) {
-				$new_src = $this->rewrite_url_if_needed($img->getAttribute("src"), $proxy_all);
+				$new_src = $this->rewrite_url_if_needed($img->getAttribute("src"));
 
 				if ($new_src != $img->getAttribute("src")) {
 					$img->setAttribute("src", $new_src);
@@ -167,7 +166,7 @@ class HTTPS_Proxy extends Plugin {
 
 			foreach ($vids as $vid) {
 				if ($vid->hasAttribute("poster")) {
-					$new_src = $this->rewrite_url_if_needed($vid->getAttribute("poster"), $proxy_all);
+					$new_src = $this->rewrite_url_if_needed($vid->getAttribute("poster"));
 
 					if ($new_src != $vid->getAttribute("poster")) {
 						$vid->setAttribute("poster", $new_src);
@@ -179,7 +178,7 @@ class HTTPS_Proxy extends Plugin {
 				$vsrcs = $xpath->query("source", $vid);
 
 				foreach ($vsrcs as $vsrc) {
-					$new_src = $this->rewrite_url_if_needed($vsrc->getAttribute("src"), $proxy_all);
+					$new_src = $this->rewrite_url_if_needed($vsrc->getAttribute("src"));
 
 					if ($new_src != $vsrc->getAttribute("src")) {
 						$vid->setAttribute("src", $new_src);
@@ -226,9 +225,10 @@ class HTTPS_Proxy extends Plugin {
 		print_checkbox("disable_cache", $disable_cache);
 		print "&nbsp;<label for=\"disable_cache\">" . __("Don't cache files locally.") . "</label>";
 		print "</fieldset>";
+		$whitelist = trim(strip_tags($this->host->get($this, "whitelist")));
 		print "<fieldset class=\"narrow\">";
 		print "<label for=\"whitelist\">" . __("Host not proxied (space separated):") . "</label>";
-		print "<textarea dojoType=\"dijit.form.SimpleTextarea\" name=\"whitelist\" autocomplete=\"off\" id=\"whitelist\" value=\"\"></textarea>";
+		print "<textarea dojoType=\"dijit.form.SimpleTextarea\" name=\"whitelist\" autocomplete=\"off\" id=\"whitelist\" value=\"" . $whitelist . "\"></textarea>";
 		print "</fieldset>";
 
 		print "<p>"; print_button("submit", __("Save"));
@@ -252,3 +252,4 @@ class HTTPS_Proxy extends Plugin {
 		return 2;
 	}
 }
+?>
