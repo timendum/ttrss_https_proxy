@@ -108,24 +108,23 @@ class HTTPS_Proxy extends Plugin {
 	}
 
 	private function rewrite_url_if_needed($url) {
-		/* we don't need to handle URLs where local cache already exists, tt-rss rewrites those automatically */
-		if (!$this->cache->exists(sha1($url))) {
-
-			$whitelist = $this->host->get($this, "whitelist");
-			if (strpos($url, "data:") !== 0) {
-				$parts = parse_url($url);
-
-				foreach (explode(" " , $whitelist) as $host) {
-					if (substr(strtolower($parts['host']), -strlen($host)) === strtolower($host)) {
-						return $url;
-					}
-				}
-
-				return $this->host->get_public_method_url($this, "urlproxy", ["url" => $url]);
-			}
+		$local_filename = sha1($url);
+		if ($this->cache->exists($local_filename)) {
+			return $this->cache->getUrl($local_filename);
 		}
 
-		return $url;
+		$whitelist = $this->host->get($this, "whitelist");
+		if (strpos($url, "data:") !== 0) {
+			$parts = parse_url($url);
+
+			foreach (explode(" " , $whitelist) as $host) {
+				if (substr(strtolower($parts['host']), -strlen($host)) === strtolower($host)) {
+					return $url;
+				}
+			}
+
+			return $this->host->get_public_method_url($this, "urlproxy", ["url" => $url]);
+		}
 	}
 
 	/**
