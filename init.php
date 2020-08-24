@@ -24,6 +24,8 @@ class HTTPS_Proxy extends Plugin {
 
 		$host->add_hook($host::HOOK_RENDER_ARTICLE, $this, 150);
 		$host->add_hook($host::HOOK_RENDER_ARTICLE_CDM, $this, 150);
+		$host->add_hook($host::HOOK_RENDER_ARTICLE_API, $this, 150);
+
 		$host->add_hook($host::HOOK_ENCLOSURE_ENTRY, $this);
 
 		$host->add_hook($host::HOOK_PREFS_TAB, $this);
@@ -38,6 +40,11 @@ class HTTPS_Proxy extends Plugin {
 	}
 
 	function hook_render_article($article) {
+		return $this->hook_render_article_cdm($article);
+	}
+
+	function hook_render_article_api($row) {
+		$article = isset($row['headline']) ? $row['headline'] : $row['article'];
 		return $this->hook_render_article_cdm($article);
 	}
 
