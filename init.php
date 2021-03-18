@@ -20,7 +20,7 @@ class HTTPS_Proxy extends Plugin {
 	function init($host) {
 		$this->host = $host;
 		$this->cache = new DiskCache("urlproxy");
-		$this->cache->makeDir();
+		$this->cache->make_dir();
 
 		$host->add_hook($host::HOOK_RENDER_ARTICLE, $this, 150);
 		$host->add_hook($host::HOOK_RENDER_ARTICLE_CDM, $this, 150);
@@ -54,11 +54,11 @@ class HTTPS_Proxy extends Plugin {
 		$local_filename = sha1($url);
 
 		if ($this->cache->exists($local_filename)) {
-			header("Location: " . $this->cache->getUrl($local_filename));
+			header("Location: " . $this->cache->get_url($local_filename));
 			return;
 			//$this->cache->send($local_filename);
 		} else {
-			$data = fetch_file_contents(["url" => $url, "max_size" => MAX_CACHE_FILE_SIZE]);
+			$data = fetch_file_contents(["url" => $url, "max_size" => Config::get(Config::MAX_CACHE_FILE_SIZE)]);
 
 			if ($data) {
 
@@ -66,7 +66,7 @@ class HTTPS_Proxy extends Plugin {
 
 				if (!$disable_cache) {
 					if ($this->cache->put($local_filename, $data)) {
-						header("Location: " . $this->cache->getUrl($local_filename));
+						header("Location: " . $this->cache->get_url($local_filename));
 						return;
 					}
 				}
@@ -110,7 +110,7 @@ class HTTPS_Proxy extends Plugin {
 	private function rewrite_url_if_needed($url) {
 		$local_filename = sha1($url);
 		if ($this->cache->exists($local_filename)) {
-			return $this->cache->getUrl($local_filename);
+			return $this->cache->get_url($local_filename);
 		}
 
 		$whitelist = $this->host->get($this, "whitelist");
