@@ -190,48 +190,49 @@ class HTTPS_Proxy extends Plugin {
 	}
 
 	function hook_prefs_tab($args) {
-		if ($args != "prefFeeds") return;
+                if ($args != "prefFeeds") return;
 
-		print "<div dojoType=\"dijit.layout.AccordionPane\" 
-			title=\"<i class='material-icons'>extension</i> ".__('HTTPS Proxy settings (https_proxy)')."\">";
+                $disable_cache = $this->host->get($this, "disable_cache");
+                $whitelist = $this->host->get($this, "whitelist");
+?>
+                <div dojoType="dijit.layout.AccordionPane"
+                        title="<i class='material-icons'>extension</i> <?= __('HTTPS Proxy settings (https_proxy)') ?>">
 
-		print "<form dojoType=\"dijit.form.Form\">";
+                        <form dojoType='dijit.form.Form'>
 
-		print "<script type=\"dojo/method\" event=\"onSubmit\" args=\"evt\">
-			evt.preventDefault();
-			if (this.validate()) {
-				console.log(dojo.objectToQuery(this.getValues()));
-				new Ajax.Request('backend.php', {
-					parameters: dojo.objectToQuery(this.getValues()),
-					onComplete: function(transport) {
-						Notify.info(transport.responseText);
-					}
-				});
-				//this.reset();
-			}
-			</script>";
+                                <?= \Controls\pluginhandler_tags($this, "save") ?>
 
-		print_hidden("op", "pluginhandler");
-		print_hidden("method", "save");
-		print_hidden("plugin", "https_proxy");
+                                <script type="dojo/method" event="onSubmit" args="evt">
+                                        evt.preventDefault();
+                                        if (this.validate()) {
+                                                Notify.progress('Saving data...', true);
+                                                xhr.post("backend.php", this.getValues(), (reply) => {
+                                                        Notify.info(reply);
+                                                })
+                                        }
+                                </script>
 
-		$disable_cache = $this->host->get($this, "disable_cache");
-		print "<fieldset class=\"narrow\">";
-		print_checkbox("disable_cache", $disable_cache);
-		print "&nbsp;<label for=\"disable_cache\">" . __("Don't cache files locally.") . "</label>";
-		print "</fieldset>";
-		$whitelist = trim(strip_tags($this->host->get($this, "whitelist")));
-		print "<fieldset class=\"narrow\">";
-		print "<label for=\"whitelist\">" . __("Host not proxied (space separated):") . "</label>";
-		print "<textarea dojoType=\"dijit.form.SimpleTextarea\" name=\"whitelist\" autocomplete=\"off\" id=\"whitelist\" value=\"" . $whitelist . "\"></textarea>";
-		print "</fieldset>";
+                                <fieldset class='narrow'>
+                                        <label class='checkbox'>
+                                                <?= \Controls\checkbox_tag("disable_cache", $disable_cache) ?>
+                                                <?= __("Don't cache files locally") ?>
+                                        </label>
+                                </fieldset>
+                                <fieldset class='narrow'>
+                                        <label>
+                                                <?= __("Don't proxy these hosts (space-separated list):") ?>
+                                        </label>
+                                        <input dojoType="dijit.form.TextBox" name="whitelist" size="20"
+                                                value="<?= $whitelist ?>">
+                                </fieldset>
 
-		print "<p>"; print_button("submit", __("Save"));
+                                <hr/>
+                                <?= \Controls\submit_tag(__("Save")) ?>
+                        </form>
+                </div>
+<?php
+        }
 
-		print "</form>";
-
-		print "</div>";
-	}
 
 	function save() {
 		$disable_cache = checkbox_to_sql_bool($_POST["disable_cache"]);
