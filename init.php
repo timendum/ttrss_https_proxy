@@ -19,7 +19,7 @@ class HTTPS_Proxy extends Plugin {
 
 	function init($host) {
 		$this->host = $host;
-		$this->cache = new DiskCache("urlproxy");
+		$this->cache = DiskCache::instance("urlproxy");
 		$this->cache->make_dir();
 
 		$host->add_hook($host::HOOK_RENDER_ARTICLE, $this, 150);
@@ -50,7 +50,7 @@ class HTTPS_Proxy extends Plugin {
 
 	public function urlproxy() {
 
-		$url = rewrite_relative_url(get_self_url_prefix(), $_REQUEST["url"]);
+		$url = rewrite_relative_url(Config::get_self_url(), $_REQUEST["url"]);
 
 		// called without user context, let's just redirect to original URL
 		if (!$_SESSION["uid"]) {
