@@ -31,7 +31,7 @@ class HTTPS_Proxy extends Plugin {
 		$host->add_hook($host::HOOK_PREFS_TAB, $this);
 	}
 
-	function hook_enclosure_entry($enc) {
+        function hook_enclosure_entry($enc, $article_id, $rv) {
 		if (preg_match("/image/", $enc["content_type"])) {
 			$enc["content_url"] = $this->rewrite_url_if_needed($enc["content_url"]);
 		}
